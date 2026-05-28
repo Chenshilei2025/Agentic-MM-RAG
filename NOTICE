@@ -1,0 +1,26 @@
+Agentic MM-RAG
+================
+
+This repository includes a storage-native runtime for agentic multimodal RAG.
+
+Third-party ingestion adapters
+------------------------------
+
+The repository includes lightweight source snapshots under `data/vendor/` for
+ingestion compatibility:
+
+- `data/vendor/raganything`: RAG-Anything-compatible ingestion entrypoint code.
+- `data/vendor/videorag`: VideoRAG-compatible ingestion entrypoint code.
+
+Before publishing a public release, verify the upstream licenses for these
+vendored sources and add the original copyright notices, license files, commit
+references, and any required attribution. If the upstream licenses are not
+compatible with redistribution, remove these vendored directories and document
+installation from the upstream projects instead.
+
+Model and data artifacts
+------------------------
+
+This repository does not include model checkpoints, processed document/video
+stores, or proprietary datasets. Users must provide their own data and model
+credentials.

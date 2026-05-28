@@ -1,0 +1,9 @@
+include README.md
+include LICENSE
+include NOTICE
+include CONTRIBUTING.md
+include pyproject.toml
+include setup.py
+recursive-include data *.py *.md *.example
+recursive-include docs *.svg *.png *.jpg *.jpeg *.webp
+recursive-include tests *.py

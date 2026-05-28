@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentic-mm-rag"
+version = "0.1.0"
+description = "Storage-native agentic multimodal RAG for documents, videos, and fused evidence."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Agentic MM-RAG contributors" }
+]
+keywords = ["rag", "multimodal", "agents", "retrieval", "video", "documents"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = []
+
+[project.optional-dependencies]
+openai = ["openai>=1.0.0"]
+dev = ["pytest>=8.0"]
+doc-ingest = [
+  "lightrag-hku",
+]
+video-ingest = [
+  "moviepy",
+  "pillow",
+  "numpy",
+]
+
+[project.urls]
+Homepage = "https://github.com/Chenshilei2025/Agentic-MM-RAG"
+Issues = "https://github.com/Chenshilei2025/Agentic-MM-RAG/issues"
+
+[tool.setuptools]
+package-dir = { "agentic_mm_rag" = "." }
+packages = [
+  "agentic_mm_rag",
+  "agentic_mm_rag.agent",
+  "agentic_mm_rag.data",
+  "agentic_mm_rag.orchestrator",
+  "agentic_mm_rag.providers",
+  "agentic_mm_rag.tools",
+  "agentic_mm_rag.tools.runtime",
+  "agentic_mm_rag.tools.runtime.stores",
+]
+include-package-data = true
+
+[tool.setuptools.package-data]
+agentic_mm_rag = [
+  "data/README.md",
+  "data/ingestion.env.example",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".."]

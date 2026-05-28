@@ -1,0 +1,220 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Agentic MM-RAG: Unified Agentic Evidence Retrieval</title>
+  <desc id="desc">A four-stage architecture showing offline multimodal ingestion, typed retrieval tools, agentic orchestration, progressive evidence state, and heterogeneous model collaboration.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .panel { fill: #ffffff; stroke: #8b96a6; stroke-width: 1.8; rx: 12; }
+      .blue { stroke: #2563a9; }
+      .purple { stroke: #6b4aa0; }
+      .green { stroke: #3d7a45; }
+      .orange { stroke: #c96725; }
+      .title { font: 700 30px Arial, sans-serif; fill: #111827; }
+      .h { font: 700 16px Arial, sans-serif; }
+      .body { font: 14px Arial, sans-serif; fill: #111827; }
+      .small { font: 12px Arial, sans-serif; fill: #374151; }
+      .tiny { font: 11px Arial, sans-serif; fill: #4b5563; }
+      .blueText { fill: #1f4f8f; }
+      .purpleText { fill: #51327f; }
+      .greenText { fill: #266536; }
+      .orangeText { fill: #a24715; }
+      .arrow { stroke: #111827; stroke-width: 2.2; fill: none; marker-end: url(#arrow); }
+      .arrowThin { stroke: #111827; stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+      .arrowOrange { stroke: #c96725; stroke-width: 2.2; fill: none; marker-end: url(#arrowOrange); }
+      .dash { stroke-dasharray: 5 5; }
+      .icon { fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L8,3 z" fill="#111827"/>
+    </marker>
+    <marker id="arrowOrange" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L8,3 z" fill="#c96725"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1280" height="720"/>
+  <text class="title" x="640" y="36" text-anchor="middle">Agentic MM-RAG: Unified Agentic Evidence Retrieval</text>
+
+  <rect class="panel" x="8" y="58" width="290" height="520" rx="12"/>
+  <rect class="panel" x="314" y="58" width="280" height="520" rx="12"/>
+  <rect class="panel" x="610" y="58" width="290" height="520" rx="12"/>
+  <rect class="panel" x="910" y="58" width="360" height="520" rx="12"/>
+
+  <text class="h blueText" x="38" y="90">1. Offline Multimodal Ingestion</text>
+  <text class="h purpleText" x="340" y="90">2. Typed Retrieval Capabilities</text>
+  <text class="h greenText" x="642" y="90">3. Agentic Orchestration</text>
+  <text class="h orangeText" x="940" y="90">4. Progressive Evidence State</text>
+
+  <rect x="20" y="112" width="260" height="190" rx="10" fill="#f8fbff" stroke="#2563a9" stroke-width="1.8"/>
+  <text class="h blueText" x="42" y="142">A. VideoRAG-style Video Stores</text>
+  <rect x="36" y="180" width="66" height="62" rx="4" fill="none" stroke="#2563a9" stroke-width="2"/>
+  <line x1="48" y1="180" x2="48" y2="242" stroke="#2563a9" stroke-width="2"/>
+  <line x1="90" y1="180" x2="90" y2="242" stroke="#2563a9" stroke-width="2"/>
+  <path d="M62 194 L62 228 L86 211 Z" fill="none" stroke="#2563a9" stroke-width="2"/>
+  <text class="body" x="130" y="176">• transcript / caption</text>
+  <text class="body" x="146" y="198">segments</text>
+  <text class="body" x="130" y="225">• visual segments</text>
+  <text class="body" x="130" y="252">• temporal locators</text>
+  <text class="body" x="130" y="279">• event / entity graph</text>
+
+  <line x1="150" y1="303" x2="150" y2="360" stroke="#6b7280" stroke-width="1.4" stroke-dasharray="5 5"/>
+  <text class="small blueText" x="150" y="337" text-anchor="middle">Homologous storage abstraction</text>
+
+  <rect x="20" y="362" width="260" height="190" rx="10" fill="#f8fbff" stroke="#2563a9" stroke-width="1.8"/>
+  <text class="h blueText" x="42" y="392">B. RAG-Anything-style</text>
+  <text class="h blueText" x="42" y="414">Document Stores</text>
+  <path d="M42 440 H84 L102 458 V520 H42 Z" fill="none" stroke="#2563a9" stroke-width="2"/>
+  <path d="M84 440 V458 H102" fill="none" stroke="#2563a9" stroke-width="2"/>
+  <line x1="54" y1="474" x2="88" y2="474" stroke="#2563a9" stroke-width="2"/>
+  <line x1="54" y1="492" x2="88" y2="492" stroke="#2563a9" stroke-width="2"/>
+  <text class="body" x="130" y="448">• text chunks</text>
+  <text class="body" x="130" y="476">• visual blocks</text>
+  <text class="body" x="130" y="504">• layout / page locators</text>
+  <text class="body" x="130" y="532">• entity / relation graph</text>
+
+  <rect x="326" y="112" width="120" height="124" rx="8" fill="#fbf8ff" stroke="#6b4aa0" stroke-width="1.8"/>
+  <rect x="456" y="112" width="120" height="124" rx="8" fill="#fbf8ff" stroke="#6b4aa0" stroke-width="1.8"/>
+  <rect x="326" y="248" width="120" height="124" rx="8" fill="#fbf8ff" stroke="#6b4aa0" stroke-width="1.8"/>
+  <rect x="456" y="248" width="120" height="124" rx="8" fill="#fbf8ff" stroke="#6b4aa0" stroke-width="1.8"/>
+  <rect x="326" y="384" width="120" height="124" rx="8" fill="#fbf8ff" stroke="#6b4aa0" stroke-width="1.8"/>
+  <rect x="456" y="384" width="120" height="124" rx="8" fill="#fbf8ff" stroke="#6b4aa0" stroke-width="1.8"/>
+  <text class="small purpleText" x="386" y="142" text-anchor="middle">video_text_seek</text>
+  <text class="small purpleText" x="516" y="142" text-anchor="middle">video_visual_seek</text>
+  <text class="small purpleText" x="386" y="278" text-anchor="middle">video_graph_seek</text>
+  <text class="small purpleText" x="516" y="278" text-anchor="middle">doc_text_seek</text>
+  <text class="small purpleText" x="386" y="414" text-anchor="middle">doc_visual_seek</text>
+  <text class="small purpleText" x="516" y="414" text-anchor="middle">doc_graph_seek</text>
+  <circle cx="414" cy="204" r="18" fill="none" stroke="#6b4aa0" stroke-width="2"/>
+  <line x1="427" y1="217" x2="438" y2="228" stroke="#6b4aa0" stroke-width="2"/>
+  <rect x="355" y="160" width="40" height="34" rx="3" fill="none" stroke="#6b4aa0" stroke-width="2"/>
+  <line x1="364" y1="171" x2="386" y2="171" stroke="#6b4aa0" stroke-width="2"/>
+  <line x1="364" y1="183" x2="386" y2="183" stroke="#6b4aa0" stroke-width="2"/>
+  <path d="M485 192 L500 174 L516 188 L526 180 L548 208 H485 Z" fill="none" stroke="#6b4aa0" stroke-width="2"/>
+  <circle cx="538" cy="168" r="6" fill="none" stroke="#6b4aa0" stroke-width="2"/>
+  <circle cx="364" cy="320" r="5" fill="none" stroke="#6b4aa0" stroke-width="2"/>
+  <circle cx="408" cy="300" r="5" fill="none" stroke="#6b4aa0" stroke-width="2"/>
+  <circle cx="414" cy="344" r="5" fill="none" stroke="#6b4aa0" stroke-width="2"/>
+  <circle cx="374" cy="350" r="5" fill="none" stroke="#6b4aa0" stroke-width="2"/>
+  <line x1="364" y1="320" x2="408" y2="300" stroke="#6b4aa0" stroke-width="2"/>
+  <line x1="408" y1="300" x2="414" y2="344" stroke="#6b4aa0" stroke-width="2"/>
+  <line x1="414" y1="344" x2="374" y2="350" stroke="#6b4aa0" stroke-width="2"/>
+  <circle cx="542" cy="340" r="18" fill="none" stroke="#6b4aa0" stroke-width="2"/>
+  <line x1="555" y1="353" x2="566" y2="364" stroke="#6b4aa0" stroke-width="2"/>
+  <path d="M493 296 H525 L540 311 V354 H493 Z" fill="none" stroke="#6b4aa0" stroke-width="2"/>
+  <path d="M525 296 V311 H540" fill="none" stroke="#6b4aa0" stroke-width="2"/>
+  <rect x="355" y="440" width="58" height="44" fill="none" stroke="#6b4aa0" stroke-width="2"/>
+  <line x1="384" y1="440" x2="384" y2="484" stroke="#6b4aa0" stroke-width="2"/>
+  <line x1="355" y1="462" x2="413" y2="462" stroke="#6b4aa0" stroke-width="2"/>
+  <circle cx="414" cy="484" r="15" fill="none" stroke="#6b4aa0" stroke-width="2"/>
+  <line x1="425" y1="495" x2="437" y2="507" stroke="#6b4aa0" stroke-width="2"/>
+  <circle cx="496" cy="470" r="5" fill="none" stroke="#6b4aa0" stroke-width="2"/>
+  <circle cx="536" cy="444" r="5" fill="none" stroke="#6b4aa0" stroke-width="2"/>
+  <circle cx="554" cy="486" r="5" fill="none" stroke="#6b4aa0" stroke-width="2"/>
+  <circle cx="510" cy="508" r="5" fill="none" stroke="#6b4aa0" stroke-width="2"/>
+  <line x1="496" y1="470" x2="536" y2="444" stroke="#6b4aa0" stroke-width="2"/>
+  <line x1="536" y1="444" x2="554" y2="486" stroke="#6b4aa0" stroke-width="2"/>
+  <line x1="554" y1="486" x2="510" y2="508" stroke="#6b4aa0" stroke-width="2"/>
+  <text class="small purpleText" x="460" y="544" text-anchor="middle">Retrieval algorithms are wrapped</text>
+  <text class="small purpleText" x="460" y="562" text-anchor="middle">as replaceable tools</text>
+
+  <path class="arrow" d="M280 330 H318"/>
+  <path class="arrow" d="M576 174 H610"/>
+  <path class="arrowThin" d="M610 306 H580"/>
+  <path class="arrowThin" d="M610 346 H580"/>
+
+  <rect x="635" y="118" width="240" height="134" rx="10" fill="#f6fff7" stroke="#3d7a45" stroke-width="1.8"/>
+  <circle cx="666" cy="166" r="28" fill="none" stroke="#3d7a45" stroke-width="3"/>
+  <rect x="646" y="160" width="40" height="36" rx="8" fill="none" stroke="#3d7a45" stroke-width="3"/>
+  <circle cx="658" cy="176" r="3" fill="#3d7a45"/>
+  <circle cx="674" cy="176" r="3" fill="#3d7a45"/>
+  <line x1="666" y1="138" x2="666" y2="152" stroke="#3d7a45" stroke-width="3"/>
+  <circle cx="666" cy="136" r="5" fill="#3d7a45"/>
+  <text class="h greenText" x="720" y="154">Decision Agent</text>
+  <text class="body" x="720" y="184">• query understanding</text>
+  <text class="body" x="720" y="208">• planning</text>
+  <text class="body" x="720" y="232">• reflection / replanning</text>
+
+  <rect x="626" y="338" width="70" height="146" rx="8" fill="#f6fff7" stroke="#3d7a45" stroke-width="1.8"/>
+  <rect x="706" y="338" width="70" height="146" rx="8" fill="#f6fff7" stroke="#3d7a45" stroke-width="1.8"/>
+  <rect x="786" y="338" width="70" height="146" rx="8" fill="#f6fff7" stroke="#3d7a45" stroke-width="1.8"/>
+  <text class="small greenText" x="661" y="366" text-anchor="middle">Text</text>
+  <text class="small greenText" x="661" y="382" text-anchor="middle">Subagent</text>
+  <text class="small greenText" x="741" y="366" text-anchor="middle">Visual</text>
+  <text class="small greenText" x="741" y="382" text-anchor="middle">Subagent</text>
+  <text class="small greenText" x="821" y="366" text-anchor="middle">Graph</text>
+  <text class="small greenText" x="821" y="382" text-anchor="middle">Subagent</text>
+  <path d="M646 410 H680 V444 H666 L656 456 V444 H646 Z" fill="none" stroke="#3d7a45" stroke-width="2"/>
+  <line x1="654" y1="422" x2="674" y2="422" stroke="#3d7a45" stroke-width="2"/>
+  <line x1="654" y1="432" x2="670" y2="432" stroke="#3d7a45" stroke-width="2"/>
+  <path d="M719 444 L732 426 L744 438 L754 430 L766 454 H719 Z" fill="none" stroke="#3d7a45" stroke-width="2"/>
+  <circle cx="758" cy="414" r="5" fill="none" stroke="#3d7a45" stroke-width="2"/>
+  <circle cx="804" cy="426" r="5" fill="none" stroke="#3d7a45" stroke-width="2"/>
+  <circle cx="832" cy="408" r="5" fill="none" stroke="#3d7a45" stroke-width="2"/>
+  <circle cx="836" cy="452" r="5" fill="none" stroke="#3d7a45" stroke-width="2"/>
+  <line x1="804" y1="426" x2="832" y2="408" stroke="#3d7a45" stroke-width="2"/>
+  <line x1="832" y1="408" x2="836" y2="452" stroke="#3d7a45" stroke-width="2"/>
+  <path class="arrowThin" d="M690 252 V330"/>
+  <path class="arrowThin" d="M742 252 V330"/>
+  <path class="arrowThin" d="M822 252 V330"/>
+  <path class="arrowThin" d="M690 252 C690 300 662 300 662 330"/>
+  <path class="arrowThin" d="M822 252 C822 300 822 300 822 330"/>
+  <path d="M628 502 H858 V526 H628 Z" fill="none" stroke="#3d7a45" stroke-width="1.5" stroke-dasharray="5 5"/>
+  <text class="small greenText" x="743" y="520" text-anchor="middle">Isolated modality-specific contexts</text>
+
+  <path class="arrow" d="M856 372 H922"/>
+  <path class="arrow" d="M856 416 H922"/>
+  <path class="arrow" d="M856 460 H922"/>
+
+  <text class="small orangeText" x="1037" y="136" text-anchor="middle">reflect and replan</text>
+  <path class="arrowOrange" d="M1112 150 C1160 150 1120 96 898 118"/>
+
+  <rect x="925" y="200" width="190" height="346" rx="10" fill="#fffaf5" stroke="#c96725" stroke-width="1.8"/>
+  <text class="h orangeText" x="1008" y="250">Evidence</text>
+  <text class="h orangeText" x="1008" y="272">Board</text>
+  <path d="M952 234 H980 V264 H952 Z" fill="none" stroke="#c96725" stroke-width="2"/>
+  <path d="M958 228 H974 V238 H958 Z" fill="none" stroke="#c96725" stroke-width="2"/>
+  <text class="body" x="965" y="320">• accepted evidence</text>
+  <text class="body" x="965" y="350">• filtered evidence</text>
+  <text class="body" x="965" y="380">• confidence</text>
+  <text class="body" x="965" y="410">• gaps</text>
+  <text class="body" x="965" y="440">• conflicts</text>
+  <text class="body" x="965" y="470">• provenance</text>
+  <rect x="982" y="492" width="60" height="26" fill="none" stroke="#c96725" stroke-width="2"/>
+  <rect x="952" y="510" width="18" height="18" fill="none" stroke="#c96725" stroke-width="2"/>
+  <rect x="1058" y="510" width="18" height="18" fill="none" stroke="#c96725" stroke-width="2"/>
+  <rect x="1004" y="538" width="18" height="18" fill="none" stroke="#c96725" stroke-width="2"/>
+  <line x1="970" y1="519" x2="982" y2="506" stroke="#c96725" stroke-width="2"/>
+  <line x1="1042" y1="506" x2="1058" y2="519" stroke="#c96725" stroke-width="2"/>
+  <line x1="1013" y1="518" x2="1013" y2="538" stroke="#c96725" stroke-width="2"/>
+
+  <rect x="1140" y="208" width="104" height="274" rx="20" fill="#fbfbfb" stroke="#6b7280" stroke-width="1.8"/>
+  <text class="h" x="1192" y="270" text-anchor="middle">Fusion +</text>
+  <text class="h" x="1192" y="292" text-anchor="middle">Answer</text>
+  <text class="h" x="1192" y="314" text-anchor="middle">Generation</text>
+  <ellipse cx="1192" cy="374" rx="34" ry="10" fill="none" stroke="#4b5563" stroke-width="2" transform="rotate(0 1192 374)"/>
+  <ellipse cx="1192" cy="374" rx="34" ry="10" fill="none" stroke="#4b5563" stroke-width="2" transform="rotate(60 1192 374)"/>
+  <ellipse cx="1192" cy="374" rx="34" ry="10" fill="none" stroke="#4b5563" stroke-width="2" transform="rotate(120 1192 374)"/>
+  <circle cx="1192" cy="374" r="5" fill="#4b5563"/>
+  <text class="small" x="1160" y="426">• evidence fusion</text>
+  <text class="small" x="1160" y="452">• grounded synthesis</text>
+  <text class="small" x="1160" y="478">• auditable answer</text>
+  <path class="arrow" d="M1115 374 H1138"/>
+
+  <rect class="panel" x="6" y="600" width="1268" height="96" rx="12"/>
+  <text class="h" x="640" y="632" text-anchor="middle">Heterogeneous Model Collaboration</text>
+  <path d="M88 648 C66 648 60 666 72 678 C58 690 78 704 94 690 C112 704 130 690 116 676 C130 662 112 646 96 656" fill="none" stroke="#2563a9" stroke-width="2.4"/>
+  <circle cx="126" cy="664" r="4" fill="none" stroke="#2563a9" stroke-width="2"/>
+  <circle cx="132" cy="684" r="4" fill="none" stroke="#2563a9" stroke-width="2"/>
+  <line x1="106" y1="670" x2="126" y2="664" stroke="#2563a9" stroke-width="2"/>
+  <line x1="106" y1="678" x2="132" y2="684" stroke="#2563a9" stroke-width="2"/>
+  <text class="body blueText" x="150" y="668">Small models:</text>
+  <text class="small" x="250" y="668">local evidence inspection, reranking, structured reports</text>
+  <line x1="640" y1="642" x2="640" y2="686" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="5 5"/>
+  <path d="M720 648 C698 648 692 666 704 678 C690 690 710 704 726 690 C744 704 762 690 748 676 C762 662 744 646 728 656" fill="none" stroke="#3d7a45" stroke-width="2.4"/>
+  <circle cx="758" cy="664" r="4" fill="none" stroke="#3d7a45" stroke-width="2"/>
+  <circle cx="764" cy="684" r="4" fill="none" stroke="#3d7a45" stroke-width="2"/>
+  <line x1="738" y1="670" x2="758" y2="664" stroke="#3d7a45" stroke-width="2"/>
+  <line x1="738" y1="678" x2="764" y2="684" stroke="#3d7a45" stroke-width="2"/>
+  <text class="body greenText" x="782" y="668">Large models:</text>
+  <text class="small" x="880" y="668">planning, cross-modal reflection, final synthesis</text>
+</svg>
