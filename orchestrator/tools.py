@@ -90,8 +90,8 @@ def build_registry_bundle(
 ) -> RegistryBundle:
     """Construct the final shared tool registry bundle."""
 
-    from agentic_mm_rag.orchestrator.evidence_board import EvidenceBoard
-    from agentic_mm_rag.orchestrator.evidence_io import (
+    from agentic_mm_rag.orchestrator.evidence.board import EvidenceBoard
+    from agentic_mm_rag.orchestrator.evidence.io import (
         ReadEvidenceTool,
         WriteEvidenceTool,
         EvidenceBoardWriter,

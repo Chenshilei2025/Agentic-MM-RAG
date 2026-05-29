@@ -18,17 +18,17 @@ from agentic_mm_rag.api import (
     create_orchestrator_session,
     create_runtime,
 )
-from agentic_mm_rag.agent import (
+from agentic_mm_rag.agent import DecisionAgent
+from agentic_mm_rag.orchestrator.types import (
     AgentPlan,
-    DecisionAgent,
     OrchestrationResult,
     QueryContext,
     ReflectionResult,
     RetrievalTask,
     SubagentResult,
 )
-from agentic_mm_rag.orchestrator import Orchestrator
-from agentic_mm_rag.orchestrator.evidence_pool import EvidencePoolItem, RefreshableEvidencePool
+from agentic_mm_rag.orchestrator.loop import Orchestrator
+from agentic_mm_rag.orchestrator.evidence.pool import EvidencePoolItem, RefreshableEvidencePool
 from agentic_mm_rag.schemas import EvidenceCard, Locator, ScoreParts
 from agentic_mm_rag.tools.runtime import (
     RetrievalBackend,

@@ -1,6 +1,6 @@
 """Batch runner facade backed by the final orchestrator."""
 
-from agentic_mm_rag.agent.runtime_types import AgenticRunResult, ReflectionDecision
+from agentic_mm_rag.results import AgenticRunResult, ReflectionDecision
 from agentic_mm_rag.api import BatchRunSession
 
 

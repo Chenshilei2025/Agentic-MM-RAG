@@ -9,6 +9,7 @@ from typing import Any
 
 from agentic_mm_rag.agent.hook import AgentHook, AgentHookContext
 from agentic_mm_rag.providers.base import LLMProvider, ToolCallRequest
+from agentic_mm_rag.schemas import ToolResponse
 from agentic_mm_rag.tools.registry import ToolRegistry
 
 
@@ -103,7 +104,10 @@ class AgentRunner:
                 hook_context.tool_results = list(tool_results)
                 for call, result in zip(response.tool_calls, tool_results):
                     tools_used.append(call.name)
-                    if isinstance(result, str) and result.startswith("Error:"):
+                    if isinstance(result, ToolResponse) and not result.ok:
+                        if spec.fail_on_tool_error:
+                            error = result.error or "tool failed"
+                    elif isinstance(result, str) and result.startswith("Error:"):
                         if spec.fail_on_tool_error:
                             error = result
                     messages.append(
@@ -176,14 +180,13 @@ class AgentRunner:
         return results
 
     @staticmethod
-    async def _run_tool(spec: AgentRunSpec, call: ToolCallRequest) -> Any:
-        response = await spec.tools.execute(call.name, call.arguments)
-        if not response.ok:
-            return f"Error: {response.error or 'tool failed'}"
-        return response.to_dict()
+    async def _run_tool(spec: AgentRunSpec, call: ToolCallRequest) -> ToolResponse:
+        return await spec.tools.execute(call.name, call.arguments)
 
     @staticmethod
     def _stringify_tool_result(result: Any) -> str:
+        if isinstance(result, ToolResponse):
+            return json.dumps(result.to_dict(), ensure_ascii=False)
         if isinstance(result, str):
             return result
         return json.dumps(result, ensure_ascii=False)

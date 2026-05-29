@@ -37,7 +37,8 @@ The online query flow is:
 7. A deterministic audit checks relevance, missing terms, modality coverage,
    and possible conflicts.
 8. The planner may launch follow-up retrieval tasks.
-9. Evidence from current reports and the evidence pool is fused.
+9. Evidence from current reports is fused; optional evidence-pool reuse can be
+   enabled explicitly for interactive refresh workflows.
 10. The final model receives filtered evidence, gap context, and audit context
     to produce a grounded answer.
 
@@ -159,9 +160,12 @@ subagent types:
 | `AGENTIC_MM_RAG_VISUAL_MODEL` | `gpt-4.1` | document/video visual subagents and source-image inspection |
 | `AGENTIC_MM_RAG_GRAPH_MODEL` | `gpt-4o-mini` | document/video graph subagents |
 
-The evidence pool is deterministic state and does not use a model. The evidence
-board is also heuristic by default; if optional LLM consolidation is enabled,
-it reuses the decision model rather than introducing another model role.
+The evidence pool is deterministic state and does not use a model. Cross-query
+pool reuse is disabled by default to keep batch evaluation samples isolated; set
+`reuse_evidence_pool=True` on the orchestrator only for interactive refresh
+workflows. The evidence board is also heuristic by default; if optional LLM
+consolidation is enabled, it reuses the decision model rather than introducing
+another model role.
 
 ## Current Limitations
 

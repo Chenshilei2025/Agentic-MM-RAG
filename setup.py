@@ -6,6 +6,7 @@ PACKAGES = [
     "agentic_mm_rag.agent",
     "agentic_mm_rag.data",
     "agentic_mm_rag.orchestrator",
+    "agentic_mm_rag.orchestrator.evidence",
     "agentic_mm_rag.providers",
     "agentic_mm_rag.tools",
     "agentic_mm_rag.tools.runtime",

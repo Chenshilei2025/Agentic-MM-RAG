@@ -1,16 +1,13 @@
 """System orchestration, lifecycle, evidence state, and tool profiles."""
 
-from agentic_mm_rag.orchestrator.evidence_board import EvidenceBoard
-from agentic_mm_rag.orchestrator.evidence_io import (
-    EvidenceBoardWriter,
-    ReadEvidenceTool,
-    WriteEvidenceTool,
+from agentic_mm_rag.orchestrator.types import (
+    AgentPlan,
+    OrchestrationResult,
+    QueryContext,
+    ReflectionResult,
+    RetrievalTask,
+    SubagentResult,
 )
-from agentic_mm_rag.orchestrator.evidence_pool import (
-    EvidencePoolItem,
-    RefreshableEvidencePool,
-)
-from agentic_mm_rag.orchestrator.evidence_audit import audit_evidence
 from agentic_mm_rag.orchestrator.tools import (
     DECISION_AGENT_TOOL_NAMES,
     DOC_GRAPH_SUBAGENT_TOOL_NAMES,
@@ -36,9 +33,41 @@ def __getattr__(name: str):
             "Orchestrator": Orchestrator,
             "OrchestratorContext": OrchestratorContext,
         }[name]
+    if name == "EvidenceBoard":
+        from agentic_mm_rag.orchestrator.evidence.board import EvidenceBoard
+
+        return EvidenceBoard
+    if name in {"EvidenceBoardWriter", "ReadEvidenceTool", "WriteEvidenceTool"}:
+        from agentic_mm_rag.orchestrator.evidence.io import (
+            EvidenceBoardWriter,
+            ReadEvidenceTool,
+            WriteEvidenceTool,
+        )
+
+        return {
+            "EvidenceBoardWriter": EvidenceBoardWriter,
+            "ReadEvidenceTool": ReadEvidenceTool,
+            "WriteEvidenceTool": WriteEvidenceTool,
+        }[name]
+    if name in {"EvidencePoolItem", "RefreshableEvidencePool"}:
+        from agentic_mm_rag.orchestrator.evidence.pool import (
+            EvidencePoolItem,
+            RefreshableEvidencePool,
+        )
+
+        return {
+            "EvidencePoolItem": EvidencePoolItem,
+            "RefreshableEvidencePool": RefreshableEvidencePool,
+        }[name]
+    if name == "audit_evidence":
+        from agentic_mm_rag.orchestrator.evidence.audit import audit_evidence
+
+        return audit_evidence
     raise AttributeError(name)
 
+
 __all__ = [
+    "AgentPlan",
     "DECISION_AGENT_TOOL_NAMES",
     "DOC_GRAPH_SUBAGENT_TOOL_NAMES",
     "DOC_TEXT_SUBAGENT_TOOL_NAMES",
@@ -48,10 +77,15 @@ __all__ = [
     "EvidencePoolItem",
     "Orchestrator",
     "OrchestratorContext",
+    "OrchestrationResult",
     "PUBLIC_TOOL_NAMES",
+    "QueryContext",
     "ReadEvidenceTool",
+    "ReflectionResult",
     "RegistryBundle",
     "RefreshableEvidencePool",
+    "RetrievalTask",
+    "SubagentResult",
     "ToolRegistryProfile",
     "VIDEO_GRAPH_SUBAGENT_TOOL_NAMES",
     "VIDEO_TEXT_SUBAGENT_TOOL_NAMES",

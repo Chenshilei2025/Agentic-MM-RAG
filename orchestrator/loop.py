@@ -7,12 +7,13 @@ import dataclasses
 import json
 import re
 from dataclasses import dataclass, field
+from contextlib import contextmanager
 from typing import Any
 
 from agentic_mm_rag.agent.decision import DecisionAgent
-from agentic_mm_rag.orchestrator.evidence_board import EvidenceBoard
-from agentic_mm_rag.orchestrator.evidence_io import EvidenceBoardWriter
-from agentic_mm_rag.orchestrator.evidence_pool import RefreshableEvidencePool
+from agentic_mm_rag.orchestrator.evidence.board import EvidenceBoard
+from agentic_mm_rag.orchestrator.evidence.io import EvidenceBoardWriter, ReadEvidenceTool, WriteEvidenceTool
+from agentic_mm_rag.orchestrator.evidence.pool import RefreshableEvidencePool
 from agentic_mm_rag.agent.subagent import (
     DocGraphSubagent,
     DocTextSubagent,
@@ -22,7 +23,7 @@ from agentic_mm_rag.agent.subagent import (
     VideoTextSubagent,
     VideoVisualSubagent,
 )
-from agentic_mm_rag.agent.types import (
+from agentic_mm_rag.orchestrator.types import (
     AgentPlan,
     OrchestrationResult,
     QueryContext,
@@ -67,6 +68,7 @@ class Orchestrator:
         graph_model: str | None = None,
         max_reflection_rounds: int = 1,
         enable_guided_routing: bool = False,
+        reuse_evidence_pool: bool = False,
         **legacy_kwargs: Any,
     ) -> None:
         if provider is None:
@@ -98,7 +100,41 @@ class Orchestrator:
         
         self.subagent_execution = "model_session"
         self.max_reflection_rounds = max_reflection_rounds
+        self.reuse_evidence_pool = reuse_evidence_pool
         self.trace: list[dict[str, Any]] = []
+        self._run_lock = asyncio.Lock()
+
+    @contextmanager
+    def _temporary_evidence_state(self):
+        """Use an isolated evidence board/writer for one orchestration run."""
+
+        original_board = self.evidence_board
+        original_writer = self.evidence_writer
+        original_tools = self.tools
+        board = EvidenceBoard(
+            provider=getattr(original_board, "provider", None),
+            enable_llm_consolidation=bool(getattr(original_board, "enable_llm_consolidation", False)),
+        )
+        board.model = getattr(original_board, "model", board.model)
+        writer = EvidenceBoardWriter(board)
+        tools = ToolRegistry()
+        for name in original_tools.tool_names:
+            if name in {"read_evidence", "write_evidence"}:
+                continue
+            tool = original_tools.get(name)
+            if tool is not None:
+                tools.register(tool)
+        tools.register(ReadEvidenceTool(board))
+        tools.register(WriteEvidenceTool(writer))
+        self.evidence_board = board
+        self.evidence_writer = writer
+        self.tools = tools
+        try:
+            yield
+        finally:
+            self.evidence_board = original_board
+            self.evidence_writer = original_writer
+            self.tools = original_tools
 
     def available_tools(self) -> list[str]:
         return self.tools.names
@@ -140,8 +176,9 @@ class Orchestrator:
         return await self.run(dataclasses.replace(query))
 
     async def run(self, query: QueryContext) -> OrchestrationResult:
-        self.evidence_board.clear()
-        return await self._run_multi_agent(query)
+        async with self._run_lock:
+            with self._temporary_evidence_state():
+                return await self._run_multi_agent(dataclasses.replace(query, metadata=dict(query.metadata or {})))
 
     async def refresh_evidence_pool(
         self,
@@ -151,33 +188,41 @@ class Orchestrator:
     ) -> dict[str, Any]:
         """Refresh pool candidates for a query by rerunning the current retrieval plan."""
 
-        self.evidence_board.clear()
-        if mark_existing_stale:
-            query_terms = set(query.query_text.casefold().split())
-            if query_terms:
-                self.evidence_pool.mark_stale(
-                    lambda item: bool(
-                        query_terms
-                        & set(str(item.evidence.get("content") or "").casefold().split())
-                    ),
-                    reason="explicit_refresh",
-                )
-            else:
-                self.evidence_pool.mark_stale(reason="explicit_refresh")
-        plan = self.decision_agent.plan(query)
-        results = await self._run_tasks(plan.tasks)
-        await self._update_evidence_state(query, results)
-        return {
-            "plan": plan.to_dict(),
-            "results": [result.to_dict() for result in results],
-            "pool": self.evidence_pool.snapshot(include_evidence=False),
-        }
+        async with self._run_lock:
+            query = dataclasses.replace(query, metadata=dict(query.metadata or {}))
+            with self._temporary_evidence_state():
+                if mark_existing_stale:
+                    query_terms = set(query.query_text.casefold().split())
+                    if query_terms:
+                        self.evidence_pool.mark_stale(
+                            lambda item: bool(
+                                query_terms
+                                & set(str(item.evidence.get("content") or "").casefold().split())
+                            ),
+                            reason="explicit_refresh",
+                        )
+                    else:
+                        self.evidence_pool.mark_stale(reason="explicit_refresh")
+                reset_task_ids = getattr(self.decision_agent, "reset_task_ids", None)
+                if callable(reset_task_ids):
+                    reset_task_ids()
+                plan = self.decision_agent.plan(query)
+                results = await self._run_tasks(plan.tasks)
+                await self._update_evidence_state(query, results)
+                return {
+                    "plan": plan.to_dict(),
+                    "results": [result.to_dict() for result in results],
+                    "pool": self.evidence_pool.snapshot(include_evidence=False),
+                }
 
     async def _run_multi_agent(
         self,
         query: QueryContext,
     ) -> OrchestrationResult:
         self.trace = []
+        reset_task_ids = getattr(self.decision_agent, "reset_task_ids", None)
+        if callable(reset_task_ids):
+            reset_task_ids()
         if "rewritten_data" not in (query.metadata or {}):
             ctype = "video" if query.video_query_vector is not None else "doc"
             rewritten = await self._rewrite_query(
@@ -354,7 +399,16 @@ class Orchestrator:
         query_text: str | None = None,
         query: QueryContext | None = None,
     ) -> list[dict[str, Any]]:
-        pool_items = self.evidence_pool.candidates(query, include_stale=True, limit=max(top_k * 3, 24))
+        pool_items = (
+            self.evidence_pool.candidates(
+                query,
+                include_stale=True,
+                limit=max(top_k * 3, 24),
+                min_keyword_overlap=1,
+            )
+            if self.reuse_evidence_pool
+            else []
+        )
         items: list[dict[str, Any]] = list(pool_items)
         items.extend(self.evidence_board.evidence_items())
         for result in results:

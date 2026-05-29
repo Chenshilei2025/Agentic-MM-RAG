@@ -11,6 +11,7 @@ from agentic_mm_rag.config import DEFAULT_PATHS
 from agentic_mm_rag.tools.runtime.stores.graph import GraphMLStore
 from agentic_mm_rag.tools.runtime.stores.json_utils import load_json, safe_count_pattern
 from agentic_mm_rag.tools.runtime.stores.vector import JsonVectorStore
+from agentic_mm_rag.tools.runtime.scoring import GROUP_TERMS, MEASURE_TERMS, TEMPORAL_CHANGE_TERMS, keywords
 
 
 NOISY_ENTITY_TERMS = {
@@ -354,10 +355,9 @@ class DocRAGStore:
 
         query = query_text.casefold()
         years = set(re.findall(r"\b(?:19|20)\d{2}\b", query))
-        wants_delta = (
-            len(years) >= 2
-            and any(token in query for token in ("gain", "gained", "increase", "change", "most", "largest"))
-            and any(token in query for token in ("subgroup", "subgroups", "hispanic", "latino", "confidence"))
+        query_terms = keywords(query)
+        wants_delta = len(years) >= 2 and bool(query_terms & TEMPORAL_CHANGE_TERMS) and bool(
+            query_terms & (GROUP_TERMS | MEASURE_TERMS)
         )
         if not wants_delta:
             return {}
@@ -372,15 +372,14 @@ class DocRAGStore:
                 continue
             score = 0.0
             score += len(years & set(re.findall(r"\b(?:19|20)\d{2}\b", content))) * 0.8
-            if any(token in content for token in ("subgroup", "subgroups", "demographic")):
+            content_terms = keywords(content)
+            if content_terms & GROUP_TERMS:
                 score += 1.0
-            if any(token in content for token in ("education", "college", "high school", "u.s.-born", "foreign-born", "ages")):
-                score += 1.2
             if re.search(r"\+\s?\d+\s*(?:percentage\s+)?points?", content):
                 score += 2.5
             if "percentage point" in content:
                 score += 1.5
-            if any(token in content for token in ("excellent", "good", "confidence", "personal finances", "economic optimism")):
+            if content_terms & MEASURE_TERMS:
                 score += 0.8
             if score > 0:
                 scores[str(chunk_id)] = score
@@ -396,13 +395,14 @@ class DocRAGStore:
 
         query = query_text.casefold()
         wants_references = any(token in query for token in ("reference", "references", "citation", "citations", "bibliography"))
+        query_terms = keywords(query)
         wants_subgroup_change = (
-            any(token in query for token in ("subgroup", "subgroups", "demographic", "education", "college"))
-            and any(token in query for token in ("gain", "gained", "increase", "change", "from", "between"))
+            bool(query_terms & GROUP_TERMS)
+            and bool(query_terms & (TEMPORAL_CHANGE_TERMS | {"between", "from"}))
             and len(re.findall(r"\b(?:19|20)\d{2}\b", query)) >= 2
         )
         wants_temporal_delta = (
-            any(token in query for token in ("gain", "gained", "increase", "decrease", "change", "most", "largest"))
+            bool(query_terms & TEMPORAL_CHANGE_TERMS)
             and len(re.findall(r"\b(?:19|20)\d{2}\b", query)) >= 2
         )
         if not (wants_references or wants_subgroup_change or wants_temporal_delta):
@@ -451,11 +451,12 @@ class DocRAGStore:
                 if wants_subgroup_change or wants_temporal_delta:
                     year_hits = len(set(re.findall(r"\b(?:19|20)\d{2}\b", text)) & set(re.findall(r"\b(?:19|20)\d{2}\b", query)))
                     score += year_hits * 1.0
-                    if any(token in text for token in ("subgroup", "subgroups", "demographic", "generation", "education", "college", "high school", "u.s.-born", "foreign-born", "ages")):
+                    text_terms = keywords(text)
+                    if text_terms & GROUP_TERMS:
                         score += 1.6
-                    if any(token in text for token in ("gain", "gains", "increase", "increased", "change", "percentage point")):
+                    if text_terms & TEMPORAL_CHANGE_TERMS or "percentage point" in text:
                         score += 1.5
-                    if any(token in text for token in ("excellent", "good", "confidence", "optimistic", "personal finances")):
+                    if text_terms & MEASURE_TERMS:
                         score += 1.0
                     if str(chunk.get("original_type") or "").lower() in {"chart", "table"}:
                         score += 0.8
@@ -530,12 +531,13 @@ class DocRAGStore:
                 if any(token in text for token in ("methodology", "sample", "interview", "survey")):
                     score += 0.8
             if (
-                any(token in query for token in ("subgroup", "subgroups", "demographic", "education", "college", "gain", "gained", "increase", "change"))
+                bool(keywords(query) & (GROUP_TERMS | TEMPORAL_CHANGE_TERMS | MEASURE_TERMS))
                 and len(re.findall(r"\b(?:19|20)\d{2}\b", query)) >= 2
             ):
                 if page_idx is not None and page_idx in focus_pages:
                     score += 1.4
-                if any(token in text for token in ("subgroup", "subgroups", "demographic", "education", "college", "high school", "percentage point")):
+                text_terms = keywords(text)
+                if text_terms & (GROUP_TERMS | MEASURE_TERMS) or "percentage point" in text:
                     score += 1.2
                 if any(year in text for year in re.findall(r"\b(?:19|20)\d{2}\b", query)):
                     score += 0.7

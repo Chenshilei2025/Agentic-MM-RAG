@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from agentic_mm_rag.agent.runtime_types import AgenticRunResult
-from agentic_mm_rag.agent.types import OrchestrationResult, QueryContext
+from agentic_mm_rag.results import AgenticRunResult
+from agentic_mm_rag.orchestrator.types import OrchestrationResult, QueryContext
 from agentic_mm_rag.orchestrator.loop import Orchestrator
 from agentic_mm_rag.runtime import AgenticRuntime
 from agentic_mm_rag.tools.registry import ToolRegistry

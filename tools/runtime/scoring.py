@@ -38,6 +38,54 @@ CANONICAL_TOKENS = {
     "blockers": "blocker",
 }
 
+TEMPORAL_CHANGE_TERMS = {
+    "gain",
+    "gained",
+    "increase",
+    "increased",
+    "decrease",
+    "decreased",
+    "change",
+    "changed",
+    "difference",
+    "delta",
+    "most",
+    "largest",
+}
+GROUP_TERMS = {
+    "age",
+    "ages",
+    "category",
+    "categories",
+    "cohort",
+    "cohorts",
+    "demographic",
+    "demographics",
+    "education",
+    "gender",
+    "group",
+    "groups",
+    "population",
+    "segment",
+    "segments",
+    "subgroup",
+    "subgroups",
+}
+MEASURE_TERMS = {
+    "chart",
+    "figure",
+    "percent",
+    "percentage",
+    "point",
+    "points",
+    "rate",
+    "share",
+    "survey",
+    "table",
+    "value",
+    "values",
+}
+
 
 def normalize_score(value: float, max_value: float) -> float:
     """Normalize a non-negative score into the closed interval [0, 1]."""
@@ -124,8 +172,8 @@ def fuse_evidence_items(
     wants_cause = any(token in query for token in ("why", "cause", "reason", "how", "strategy", "technique", "enable"))
     wants_temporal_delta = (
         len(re.findall(r"\b(?:19|20)\d{2}\b", query)) >= 2
-        and any(token in query for token in ("gain", "gained", "increase", "change", "most", "largest"))
-        and any(token in query for token in ("subgroup", "subgroups", "hispanic", "latino", "confidence"))
+        and any(token in query_terms for token in TEMPORAL_CHANGE_TERMS)
+        and bool(query_terms & (GROUP_TERMS | MEASURE_TERMS))
     )
     best_by_id: dict[str, dict[str, Any]] = {}
     for item in evidence_items:
@@ -155,10 +203,8 @@ def fuse_evidence_items(
         content = str(item.get("content") or item.get("text") or "")
         if wants_temporal_delta:
             has_delta = bool(re.search(r"\+\s?\d+\s*(?:percentage\s+)?points?", content, re.IGNORECASE))
-            has_group = any(
-                token in content.casefold()
-                for token in ("some college", "high school", "education", "u.s.-born", "foreign-born", "latino men", "latina women")
-            )
+            content_terms = keywords(content)
+            has_group = bool(content_terms & GROUP_TERMS)
             if has_delta and has_group:
                 fused_score += 1.35
                 if str(item.get("modality") or "") == "text":

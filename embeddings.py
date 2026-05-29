@@ -23,11 +23,13 @@ class OpenAICompatibleEmbeddingClient:
         model: str,
         api_key: str | None = None,
         base_url: str | None = None,
+        dimensions: int | None = None,
         timeout_s: float = 60.0,
     ) -> None:
         self.model = model
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         self.base_url = (base_url or os.environ.get("OPENAI_BASE_URL") or "").rstrip("/")
+        self.dimensions = dimensions
         self.timeout_s = timeout_s
         if not self.api_key:
             raise RuntimeError("OPENAI_API_KEY is required for embeddings")
@@ -37,7 +39,10 @@ class OpenAICompatibleEmbeddingClient:
     def embed(self, text: str) -> list[float]:
         try:
             url = f"{self.base_url}/embeddings"
-            payload = json.dumps({"model": self.model, "input": text}).encode("utf-8")
+            request_payload: dict[str, Any] = {"model": self.model, "input": text}
+            if self.dimensions is not None:
+                request_payload["dimensions"] = self.dimensions
+            payload = json.dumps(request_payload).encode("utf-8")
             request = urllib.request.Request(
                 url,
                 data=payload,

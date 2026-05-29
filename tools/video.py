@@ -111,7 +111,7 @@ def register_video_tools(registry: ToolRegistry) -> None:
                     description="Boost quoted phrases, names, and hyphenated terms during lexical candidate scoring.",
                     default=False,
                 ),
-                required=["query_vector"],
+                required=[],
             ),
             _manifest_metadata=seek_metadata("video", "text"),
         )
@@ -133,7 +133,7 @@ def register_video_tools(registry: ToolRegistry) -> None:
                     description="Optional segment ids to trace to nearby frames.",
                     nullable=True,
                 ),
-                required=["query_vector"],
+                required=[],
             ),
             _manifest_metadata=seek_metadata("video", "visual"),
         )
@@ -152,7 +152,7 @@ def register_video_tools(registry: ToolRegistry) -> None:
                 min_score=MIN_SCORE_SCHEMA,
                 graph_strategy=StringSchema("Graph seek strategy.", enum=["hybrid", "light_graph"]),
                 video_root=VIDEO_ROOT_SCHEMA,
-                required=["query_vector"],
+                required=[],
             ),
             _manifest_metadata=seek_metadata("video", "graph"),
         )
