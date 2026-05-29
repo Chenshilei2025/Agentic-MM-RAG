@@ -15,11 +15,11 @@ from agentic_mm_rag.agent.contracts import (
     infer_doc_query_profile,
     preferred_doc_modalities,
 )
-from agentic_mm_rag.agent.types import AgentPlan, QueryContext, ReflectionResult, RetrievalTask, SubagentResult
-from agentic_mm_rag.agent.evidence_quality import inspect_evidence_batch, query_quality_profile
+from agentic_mm_rag.orchestrator.types import AgentPlan, QueryContext, ReflectionResult, RetrievalTask, SubagentResult
+from agentic_mm_rag.orchestrator.evidence.quality import inspect_evidence_batch, query_quality_profile
 from agentic_mm_rag.agent.prompts import generation_system_prompt
 from agentic_mm_rag.config import DEFAULT_MODELS
-from agentic_mm_rag.orchestrator.evidence_audit import audit_evidence
+from agentic_mm_rag.orchestrator.evidence.audit import audit_evidence
 from agentic_mm_rag.providers import LLMProvider
 
 
@@ -269,6 +269,12 @@ def _evidence_excerpt(item: dict[str, Any], *, max_chars: int = 1200) -> str:
     content = re.sub(r"\n{3,}", "\n\n", content).strip()
     return content[:max_chars]
 
+
+def _has_direct_answer_support(item: dict[str, Any]) -> bool:
+    quality = item.get("quality") if isinstance(item.get("quality"), dict) else {}
+    support = quality.get("support") if isinstance(quality.get("support"), dict) else {}
+    return bool(support.get("direct_answer_support"))
+
 def _rank_evidence_for_generation(
     question: str,
     rewritten: dict[str, Any] | None,
@@ -307,6 +313,11 @@ class DecisionAgent:
 
     def _task_id(self, prefix: str) -> str:
         return f"{prefix}-{next(self._ids)}"
+
+    def reset_task_ids(self) -> None:
+        """Reset per-run task ids so repeated runs are deterministic."""
+
+        self._ids = count(1)
 
     def plan(self, query: QueryContext) -> AgentPlan:
         rewritten = query.metadata.get("rewritten_data") if isinstance(query.metadata, dict) else None
@@ -1219,6 +1230,20 @@ class DecisionAgent:
                 limit=16,
                 min_keep=4,
             )
+        if not generation_evidence:
+            return self._fallback_summary(
+                plan,
+                fused,
+                board,
+                reason="No direct answer support was found in the filtered evidence.",
+            )
+        if not any(_has_direct_answer_support(item) for item in generation_evidence):
+            return self._fallback_summary(
+                plan,
+                generation_evidence,
+                board,
+                reason="No direct answer support was found in the filtered evidence.",
+            )
         prompt = {
             "question": plan.query_context.query_text,
             "rewritten_query": rewritten,
@@ -1300,8 +1325,13 @@ class DecisionAgent:
         plan: AgentPlan,
         fused: list[dict[str, Any]],
         board: dict[str, Any] | None,
+        *,
+        reason: str | None = None,
     ) -> str:
         lines = [f"### {plan.query_context.query_text}", ""]
+        if reason:
+            lines.append(reason)
+            lines.append("")
         for item in fused[:5]:
             source = item.get("id") or item.get("source_id") or item.get("source_type") or "unknown"
             content = str(item.get("content") or item.get("text") or "")[:240]

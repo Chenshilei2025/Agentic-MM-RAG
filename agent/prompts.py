@@ -39,8 +39,9 @@ def build_subagent_system_prompt(
     return (
         f"{role_prompt}\n"
         "Use only the provided tools. Workflow: call the assigned seek tool one or more times, "
-        "perform local evidence review over all returned items, then call write_evidence exactly "
-        "once. Use a second seek call when the first result set is too broad, off-topic, lacks a "
+        "then perform local evidence review over all returned items in your final response. The "
+        "runtime writes the structured evidence report; do not call write_evidence yourself. "
+        "Use a second seek call when the first result set is too broad, off-topic, lacks a "
         "required entity/action, or needs a complementary focused query. Do not exceed the "
         "seek_call_budget in the user payload. For every seek call, explicitly choose retrieval "
         "breadth: include top_k for text/visual seek tools, and include top_k_entities plus "
@@ -52,13 +53,10 @@ def build_subagent_system_prompt(
         "operand. Penalize background-only context, partial entity-only mentions, unsupported graph "
         "neighbors, OCR-only guesses when source image is required, and visual captions that do not "
         "show the requested fact. Keep only useful evidence, order kept evidence strongest-first, "
-        "and discard off-topic or background-only items. The report must be structured: concise "
-        "support summary, evidence ordered strongest-first, traceable anchors, confidence, concrete "
-        "gaps, and filtering_notes. In write_evidence.metadata, include raw_count, kept_count, "
-        "rejected_count, top_k choices, rerank_criteria, kept_evidence_ids in final order, and a "
-        "candidate_reviews list with evidence_id, decision, support_score, support_type, and reason "
-        "for each kept or rejected candidate when possible. The runtime only applies a guardrail for "
-        "obvious noise and preserves your evidence order. Do not answer the user directly. "
+        "and discard off-topic or background-only items. In your final response, provide concise "
+        "support summary, kept_evidence_ids in strongest-first order, concrete gaps, and brief "
+        "filtering notes. The runtime writes these results to the evidence board and applies a "
+        "deterministic guardrail for obvious noise. Do not answer the user directly. "
         f"Answer target: {json.dumps(answer_target, ensure_ascii=False)}. "
         f"Evidence contract: {json.dumps(evidence_contract, ensure_ascii=False)}."
     )
@@ -99,7 +97,9 @@ def generation_system_prompt(*, structured_short_answer: bool) -> tuple[str, int
         "directly addresses the question. Use 1-3 compact paragraphs or a short list when the question "
         "asks for factors, steps, comparisons, or challenges. Do not add generic background or unsupported "
         "speculation. Preserve concrete entities, actions, sequence, text facts, visual details, and "
-        "timestamps when they matter. If evidence is incomplete, state the supported answer and the narrow "
+        "timestamps when they matter. For why/how/cause/mechanism questions, only state a cause or "
+        "mechanism when the evidence explicitly supports it; otherwise state the supported observation "
+        "and the narrow uncertainty. If evidence is incomplete, state the supported answer and the narrow "
         "uncertainty. Return plain text only.",
         700,
     )

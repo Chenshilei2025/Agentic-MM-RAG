@@ -1,0 +1,14 @@
+{
+  "collection_id": "0",
+  "collection": "fights-in-animal-kingdom",
+  "questions_run": 11,
+  "ok": 11,
+  "failed": 0,
+  "avg_elapsed_s": 48.66,
+  "avg_fused_evidence": 7.91,
+  "active_modality_counts": {
+    "video_text": 11,
+    "video_graph": 6
+  },
+  "jsonl": "/home/sherry/research/experiments/agentic_mm_rag_longervideos_probe_rerun_20260529/collection_0_answers.jsonl"
+}

@@ -11,10 +11,9 @@ from pathlib import Path
 from typing import Any
 
 from agentic_mm_rag.agent.contracts import allowed_tools_for_contract
-from agentic_mm_rag.agent.evidence_quality import guardrail_evidence_batch
 from agentic_mm_rag.config import DEFAULT_MODELS
 from agentic_mm_rag.schemas import ToolResponse
-from agentic_mm_rag.orchestrator.evidence_io import WriteEvidenceTool, EvidenceBoardWriter
+from agentic_mm_rag.orchestrator.evidence.io import WriteEvidenceTool, EvidenceBoardWriter
 from agentic_mm_rag.agent.prompts import (
     DOC_GRAPH_SUBAGENT_ROLE,
     DOC_TEXT_SUBAGENT_ROLE,
@@ -26,9 +25,21 @@ from agentic_mm_rag.agent.prompts import (
     VIDEO_VISUAL_SUBAGENT_ROLE,
     build_subagent_system_prompt,
 )
-from agentic_mm_rag.agent.types import RetrievalTask, SubagentResult
+from agentic_mm_rag.orchestrator.types import RetrievalTask, SubagentResult
 from agentic_mm_rag.agent.runner import AgentRunSpec, AgentRunner
 from agentic_mm_rag.tools.registry import ToolRegistry
+
+# Lazy import to avoid circular dependency with orchestrator.evidence.quality
+# which may import from this module indirectly through the agent package.
+_guardrail_evidence_batch = None
+
+
+def _get_guardrail():
+    global _guardrail_evidence_batch
+    if _guardrail_evidence_batch is None:
+        from agentic_mm_rag.orchestrator.evidence.quality import guardrail_evidence_batch
+        _guardrail_evidence_batch = guardrail_evidence_batch
+    return _guardrail_evidence_batch
 
 
 @dataclass(slots=True)
@@ -41,7 +52,13 @@ class SubagentSession:
 
 
 class SeekBudgetRegistry(ToolRegistry):
-    """Per-session registry that enforces the assigned seek-call budget."""
+    """Per-session registry that enforces the assigned seek-call budget.
+
+    Automatically injects ``query_vector`` and corpus root paths from the
+    task's ``required_seek_params`` into every seek tool call so the LLM
+    does not need to reproduce the embedding vector in its tool-call
+    arguments.
+    """
 
     def __init__(
         self,
@@ -49,11 +66,13 @@ class SeekBudgetRegistry(ToolRegistry):
         *,
         seek_tool: str,
         seek_call_budget: int,
+        required_params: dict[str, Any] | None = None,
     ) -> None:
         super().__init__()
         self.seek_tool = seek_tool
         self.seek_call_budget = max(0, int(seek_call_budget))
         self.seek_calls = 0
+        self._required_params = dict(required_params or {})
         for name in source.tool_names:
             tool = source.get(name)
             if tool is not None:
@@ -76,7 +95,13 @@ class SeekBudgetRegistry(ToolRegistry):
                     ),
                 )
             self.seek_calls += 1
+            params = self._inject_required_params(params)
         return await super().execute(name, params, **kwargs)
+
+    def _inject_required_params(self, params: dict[str, Any] | None) -> dict[str, Any]:
+        merged = dict(params or {})
+        merged.update(self._required_params)
+        return merged
 
 
 def _visual_asset_path(item: dict[str, Any]) -> str | None:
@@ -230,6 +255,20 @@ def _seek_required_params(task: RetrievalTask) -> dict[str, Any]:
     }
 
 
+def _seek_required_params_hint(task: RetrievalTask) -> dict[str, Any]:
+    """Lightweight version of required params for the LLM message.
+
+    Replaces the query_vector array with a dimension hint so the
+    message stays compact. The actual vector is injected at execution
+    time by ``SeekBudgetRegistry``.
+    """
+    params = _seek_required_params(task)
+    if "query_vector" in params and isinstance(params["query_vector"], list):
+        params = dict(params)
+        params["query_vector"] = f"<{len(params['query_vector'])}-dim vector, auto-injected>"
+    return params
+
+
 def _seek_suggested_params(task: RetrievalTask) -> dict[str, Any]:
     planning_keys = {
         "query_text",
@@ -247,6 +286,81 @@ def _seek_suggested_params(task: RetrievalTask) -> dict[str, Any]:
         for key, value in task.params.items()
         if key in planning_keys and value is not None
     }
+
+
+def _evidence_items_from_messages(messages: list[dict[str, Any]], seek_tool: str) -> tuple[list[dict[str, Any]], list[str]]:
+    evidence: list[dict[str, Any]] = []
+    warnings: list[str] = []
+    seen: set[str] = set()
+    for message in messages:
+        if message.get("role") != "tool" or message.get("name") != seek_tool:
+            continue
+        content = message.get("content")
+        if not isinstance(content, str) or not content.strip():
+            continue
+        try:
+            payload = json.loads(content)
+        except json.JSONDecodeError:
+            warnings.append(f"{seek_tool} returned non-json tool content")
+            continue
+        if not isinstance(payload, dict):
+            continue
+        if payload.get("ok") is False and payload.get("error"):
+            warnings.append(str(payload["error"]))
+        raw_evidence = payload.get("evidence")
+        if not isinstance(raw_evidence, list):
+            continue
+        for item in raw_evidence:
+            if not isinstance(item, dict):
+                continue
+            item_id = str(item.get("id") or "")
+            dedupe_key = item_id or json.dumps(item, sort_keys=True, ensure_ascii=False)
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            evidence.append(item)
+    return evidence, warnings
+
+
+def _kept_ids_from_final_content(content: str | None) -> list[str]:
+    if not content:
+        return []
+    text = content.strip()
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        payload = None
+    if isinstance(payload, dict):
+        value = payload.get("kept_evidence_ids")
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+    match = re.search(r"kept_evidence_ids\s*[:=]\s*\[([^\]]*)\]", text, flags=re.IGNORECASE)
+    if match:
+        return [
+            item.strip().strip("'\"")
+            for item in match.group(1).split(",")
+            if item.strip().strip("'\"")
+        ]
+    match = re.search(r"kept_evidence_ids\s*[:=]\s*([^\n]+)", text, flags=re.IGNORECASE)
+    if not match:
+        return []
+    return [
+        item.strip().strip("'\"")
+        for item in re.split(r"[,;\s]+", match.group(1))
+        if item.strip().strip("'\"")
+    ]
+
+
+def _apply_model_selection(
+    evidence: list[dict[str, Any]],
+    final_content: str | None,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    kept_ids = _kept_ids_from_final_content(final_content)
+    if not kept_ids:
+        return evidence, []
+    by_id = {str(item.get("id") or ""): item for item in evidence if isinstance(item, dict)}
+    selected = [by_id[item_id] for item_id in kept_ids if item_id in by_id]
+    return (selected or evidence), kept_ids
 
 
 class ExpertSubagent:
@@ -295,17 +409,82 @@ class ExpertSubagent:
             )
         )
         task.status = "done" if run.error is None else "error"
+        runtime_warnings: list[str] = []
         reports = [
             report
             for report in self.evidence_writer.board.reports()
             if report.task_id == task.id and report.agent_name == self.agent_name
         ]
+        runtime_write_used = False
+        fallback_seek_used = False
+        if not reports:
+            evidence, runtime_warnings = _evidence_items_from_messages(run.messages, self.seek_tool)
+            if not evidence and run.error is None:
+                fallback_response = await session_tools.execute(
+                    self.seek_tool,
+                    _seek_required_params(task),
+                )
+                if fallback_response.ok and fallback_response.evidence:
+                    evidence = [item.to_dict() for item in fallback_response.evidence]
+                    runtime_warnings.append(
+                        "runtime fallback seek executed because model produced no seek evidence"
+                    )
+                    fallback_seek_used = True
+                elif not fallback_response.ok:
+                    runtime_warnings.append(fallback_response.error or "runtime fallback seek failed")
+            if evidence:
+                selected_evidence, model_kept_ids = _apply_model_selection(evidence, run.final_content)
+                reviewed, diagnostics = _get_guardrail()(
+                    selected_evidence,
+                    question=task.query or str(task.params.get("query_text") or ""),
+                    rewritten=_task_rewritten_data(task),
+                    retrieval_hints=_task_retrieval_hints(task),
+                    min_keep=1,
+                )
+                runtime_write_used = True
+                await self.evidence_writer.execute(
+                    task_id=task.id,
+                    agent_name=self.agent_name,
+                    tool_used=self.seek_tool,
+                    summary=self._summarize_report(
+                        task,
+                        ok=run.error is None,
+                        evidence_count=len(reviewed),
+                        error=run.error,
+                    ),
+                    evidence=reviewed,
+                    confidence=self._confidence(run.error is None, len(reviewed)),
+                    gaps=runtime_warnings,
+                    filtering_notes=[
+                        (
+                            "runtime-enforced write_evidence from seek results; "
+                            f"kept {len(reviewed)}/{len(evidence)} item(s)"
+                        )
+                    ],
+                    metadata={
+                        "write_mode": "runtime_enforced",
+                        "raw_count": len(evidence),
+                        "kept_count": len(reviewed),
+                        "rejected_count": max(0, len(evidence) - len(reviewed)),
+                        "model_kept_evidence_ids": model_kept_ids,
+                        "model_selection_count": len(selected_evidence),
+                        "quality_report": diagnostics,
+                        "model_final_content": run.final_content,
+                        "model_tools_used": run.tools_used,
+                        "fallback_seek_used": fallback_seek_used,
+                    },
+                )
+                reports = [
+                    report
+                    for report in self.evidence_writer.board.reports()
+                    if report.task_id == task.id and report.agent_name == self.agent_name
+                ]
         quality_report = self._review_local_reports(task, reports)
         evidence = [item for report in reports for item in report.evidence]
         gaps = [gap for report in reports for gap in report.gaps]
         protocol_error = None
         if run.error is None and not reports:
-            protocol_error = "model session completed without a write_evidence report"
+            protocol_error = "model session produced no seek evidence for runtime write_evidence"
             task.status = "error"
         return SubagentResult(
             task=task,
@@ -316,6 +495,8 @@ class ExpertSubagent:
                 "tools_used": run.tools_used,
                 "seek_call_count": getattr(session_tools, "seek_calls", None),
                 "seek_call_budget": getattr(session_tools, "seek_call_budget", None),
+                "fallback_seek_used": fallback_seek_used,
+                "write_mode": "runtime_enforced" if runtime_write_used else "model_tool_call",
                 "usage": run.usage,
                 "stop_reason": run.stop_reason,
                 "raw_evidence_count": quality_report.get("raw_count", len(evidence)),
@@ -331,7 +512,7 @@ class ExpertSubagent:
                     for report in reports
                 ],
             },
-            warnings=gaps + ([protocol_error] if protocol_error else []),
+            warnings=gaps + runtime_warnings + ([protocol_error] if protocol_error else []),
             error=run.error or protocol_error,
         )
 
@@ -347,7 +528,7 @@ class ExpertSubagent:
                 "dropped_evidence_ids": [],
                 "off_topic_evidence_ids": [],
             }
-        kept, diagnostics = guardrail_evidence_batch(
+        kept, diagnostics = _get_guardrail()(
             raw_items,
             question=task.query or str(task.params.get("query_text") or ""),
             rewritten=_task_rewritten_data(task),
@@ -453,7 +634,6 @@ class ExpertSubagent:
         registry = ToolRegistry()
         for name in session.allowed_tools:
             if name == "write_evidence":
-                registry.register(WriteEvidenceTool(self.evidence_writer))
                 continue
             tool = self.tools.get(name)
             if tool is not None:
@@ -463,6 +643,7 @@ class ExpertSubagent:
             registry,
             seek_tool=self.seek_tool,
             seek_call_budget=int(budget or 1),
+            required_params=_seek_required_params(session.task),
         )
 
     def _session_messages(
@@ -487,7 +668,7 @@ class ExpertSubagent:
                         "agent_name": self.agent_name,
                         "tool_used": self.seek_tool,
                         "query": task.query,
-                        "required_seek_params": _seek_required_params(task),
+                        "required_seek_params": _seek_required_params_hint(task),
                         "suggested_seek_params": _seek_suggested_params(task),
                         "retrieval_budget": _seek_budget_for_task(task),
                         "allowed_tools": session.allowed_tools,
