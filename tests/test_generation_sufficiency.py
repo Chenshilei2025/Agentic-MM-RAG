@@ -55,3 +55,33 @@ async def _run_generation_refuses_weak_evidence_without_llm_call():
 
 def test_generation_refuses_weak_evidence_without_llm_call():
     asyncio.run(_run_generation_refuses_weak_evidence_without_llm_call())
+
+
+async def _run_generation_uses_llm_for_partial_evidence():
+    provider = SpyProvider()
+    agent = DecisionAgent(provider=provider)
+    plan = AgentPlan(
+        query_context=QueryContext(query_text="Why do Japanese honeybees heat-ball?"),
+        tasks=[],
+        rationale="test",
+    )
+    partial_evidence = [
+        {
+            "id": "seed-1",
+            "source_type": "video",
+            "modality": "video_segment",
+            "source_id": "source",
+            "content": "Japanese honeybees cluster when hornets arrive.",
+            "score": 0.6,
+            "score_parts": {"text": 0.6},
+        }
+    ]
+
+    answer = await agent.generate_async(plan, [], partial_evidence)
+
+    assert answer
+    assert provider.calls == 1
+
+
+def test_generation_uses_llm_for_partial_evidence():
+    asyncio.run(_run_generation_uses_llm_for_partial_evidence())

@@ -97,10 +97,10 @@ def generation_system_prompt(*, structured_short_answer: bool) -> tuple[str, int
         "directly addresses the question. Use 1-3 compact paragraphs or a short list when the question "
         "asks for factors, steps, comparisons, or challenges. Do not add generic background or unsupported "
         "speculation. Preserve concrete entities, actions, sequence, text facts, visual details, and "
-        "timestamps when they matter. For why/how/cause/mechanism questions, only state a cause or "
-        "mechanism when the evidence explicitly supports it; otherwise state the supported observation "
-        "and the narrow uncertainty. If evidence is incomplete, state the supported answer and the narrow "
-        "uncertainty. Return plain text only.",
+        "timestamps when they matter. If the evidence only partially answers the question, state the "
+        "supported observation first and then the narrow uncertainty; do not stop at generic background "
+        "if the evidence already points toward an answer. For why/how/cause/mechanism questions, only "
+        "state a cause or mechanism when the evidence explicitly supports it. Return plain text only.",
         700,
     )
 

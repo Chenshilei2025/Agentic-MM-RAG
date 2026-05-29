@@ -144,6 +144,13 @@ def support_profile(
         "because",
         "therefore",
         "so",
+        "when",
+        "whenever",
+        "if",
+        "while",
+        "as",
+        "after",
+        "before",
         "leads",
         "enables",
         "helps",
@@ -162,6 +169,13 @@ def support_profile(
     example_hit = any(marker in lower_text for marker in example_markers)
     contrast_hit = wants_comparison and any(marker in lower_text for marker in ("compared", "than", "versus", "better", "worse", "higher", "lower"))
     cause_hit = wants_cause and bool(relation_hits)
+    answer_seed_support = bool(entity_hits or question_hits) and (
+        bool(action_hits)
+        or bool(keyword_hits)
+        or bool(numeric_hits)
+        or bool(relation_hits)
+        or example_hit
+    )
     direct_answer_support = bool(entity_hits or question_hits) and (
         bool(action_hits)
         or bool(keyword_hits)
@@ -181,6 +195,7 @@ def support_profile(
         "example_hit": example_hit,
         "contrast_hit": contrast_hit,
         "cause_or_mechanism_hit": cause_hit,
+        "answer_seed_support": answer_seed_support,
         "direct_answer_support": direct_answer_support,
         "background_only": background_only,
     }

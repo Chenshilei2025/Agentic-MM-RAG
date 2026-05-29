@@ -209,6 +209,12 @@ def fuse_evidence_items(
                 fused_score += 1.35
                 if str(item.get("modality") or "") == "text":
                     fused_score += 0.35
+        lower_content = content.casefold()
+        if wants_cause and any(
+            marker in lower_content
+            for marker in ("because", "therefore", "so", "when", "whenever", "leads", "enables", "by", "through")
+        ):
+            fused_score += 0.8
         if query_terms:
             content_terms = keywords(content)
             matched = query_terms & content_terms
@@ -219,14 +225,25 @@ def fuse_evidence_items(
             if isinstance(support, dict):
                 if support.get("direct_answer_support"):
                     fused_score += 0.4
+                elif support.get("answer_seed_support"):
+                    fused_score += 0.2
                 elif support.get("background_only"):
                     fused_score -= 0.35
                 if support.get("contrast_hit") and wants_comparison:
                     fused_score += 0.3
                 if support.get("cause_or_mechanism_hit") and wants_cause:
-                    fused_score += 0.25
+                    fused_score += 1.0
+                if support.get("answer_seed_support") and wants_cause:
+                    fused_score += 0.35
             if not matched and str(item.get("source_type")) == "video":
-                fused_score *= 0.65
+                if isinstance(support, dict) and (
+                    support.get("answer_seed_support")
+                    or support.get("cause_or_mechanism_hit")
+                    or support.get("contrast_hit")
+                ):
+                    fused_score *= 0.82
+                else:
+                    fused_score *= 0.65
             elif str(item.get("source_type")) == "video" and coverage < 0.12:
                 fused_score *= 0.82
         record = dict(item)

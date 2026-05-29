@@ -275,6 +275,18 @@ def _has_direct_answer_support(item: dict[str, Any]) -> bool:
     support = quality.get("support") if isinstance(quality.get("support"), dict) else {}
     return bool(support.get("direct_answer_support"))
 
+
+def _has_answer_seed_support(item: dict[str, Any]) -> bool:
+    quality = item.get("quality") if isinstance(item.get("quality"), dict) else {}
+    support = quality.get("support") if isinstance(quality.get("support"), dict) else {}
+    return bool(support.get("answer_seed_support"))
+
+
+def _is_background_only(item: dict[str, Any]) -> bool:
+    quality = item.get("quality") if isinstance(item.get("quality"), dict) else {}
+    support = quality.get("support") if isinstance(quality.get("support"), dict) else {}
+    return bool(support.get("background_only"))
+
 def _rank_evidence_for_generation(
     question: str,
     rewritten: dict[str, Any] | None,
@@ -1221,6 +1233,7 @@ class DecisionAgent:
                 retrieval_hints=retrieval_hints,
                 limit=16,
             )
+            evidence_filter = dict(evidence_filter)
         else:
             generation_evidence, evidence_filter = inspect_evidence_batch(
                 fused,
@@ -1230,24 +1243,36 @@ class DecisionAgent:
                 limit=16,
                 min_keep=4,
             )
+            evidence_filter = dict(evidence_filter)
         if not generation_evidence:
             return self._fallback_summary(
                 plan,
                 fused,
                 board,
-                reason="No direct answer support was found in the filtered evidence.",
+                reason="No direct answer support was found in the filtered evidence; it is too weak to synthesize a grounded answer.",
             )
-        if not any(_has_direct_answer_support(item) for item in generation_evidence):
+        direct_support_count = sum(1 for item in generation_evidence if _has_direct_answer_support(item))
+        answer_seed_count = sum(1 for item in generation_evidence if _has_answer_seed_support(item))
+        if direct_support_count == 0 and answer_seed_count == 0 and all(_is_background_only(item) for item in generation_evidence):
             return self._fallback_summary(
                 plan,
                 generation_evidence,
                 board,
-                reason="No direct answer support was found in the filtered evidence.",
+                reason="No direct answer support was found in the filtered evidence; it is too weak to synthesize a grounded answer.",
             )
         prompt = {
             "question": plan.query_context.query_text,
             "rewritten_query": rewritten,
             "evidence_filter": evidence_filter,
+            "evidence_state": {
+                "selected_count": len(generation_evidence),
+                "direct_support_count": direct_support_count,
+                "answer_seed_count": answer_seed_count,
+                "max_relevance": round(
+                    max(float((item.get("quality") or {}).get("relevance", 0.0) or 0.0) for item in generation_evidence),
+                    4,
+                ),
+            },
             "answer_format": retrieval_hints.get("answer_format"),
             "filtered_evidence": [
                 {
